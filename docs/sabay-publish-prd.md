@@ -405,8 +405,8 @@ These exclusions are intentional. They keep the prototype narrow, credible, and 
 - Correct `lang="fil"` and `hreflang` metadata
 
 **Disclosure label**
-> “Ang artikulong ito ay isinalin sa tulong ng artificial intelligence at sinuri ng isang editor bago ilathala.”  
-> (“This article was translated with AI assistance and reviewed by an editor before publication.”)
+> “Ang artikulong ito ay may AI-assisted na unang salin at sinuri ng editor bago inilathala.”  
+> (“This article includes an AI-assisted first draft that an editor reviewed before publication.”)
 
 ### Screen 8: Glossary List (`/editor/glossary`)
 **What it must do**
