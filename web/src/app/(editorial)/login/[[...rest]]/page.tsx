@@ -1,29 +1,14 @@
-"use client";
-
-import { useEffect } from "react";
 import { SignIn } from "@clerk/nextjs";
-import { useAuth } from "@clerk/nextjs";
-import { useRouter, useSearchParams } from "next/navigation";
 import { ParalumanLogo } from "@/components/brand/paraluman-logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-export default function LoginPage() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const accessDenied = searchParams.get("access") === "denied";
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn) {
-      return;
-    }
-
-    router.replace("/dashboard");
-  }, [isLoaded, isSignedIn, router]);
-
-  if (isLoaded && isSignedIn) {
-    return null;
-  }
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ access?: string }>;
+}) {
+  const resolvedSearchParams = await searchParams;
+  const accessDenied = resolvedSearchParams.access === "denied";
 
   return (
     <main className="editorial-shell flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
@@ -57,7 +42,12 @@ export default function LoginPage() {
                 </AlertDescription>
               </Alert>
             ) : null}
-            <SignIn path="/login" routing="path" signUpUrl="" />
+            <SignIn
+              forceRedirectUrl="/dashboard"
+              path="/login"
+              routing="path"
+              signUpUrl=""
+            />
           </div>
         </section>
       </div>

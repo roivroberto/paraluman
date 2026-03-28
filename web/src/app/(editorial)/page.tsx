@@ -1,20 +1,8 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+export default async function RootPage() {
+  const authState = await auth();
 
-export default function RootPage() {
-  const { isLoaded, userId } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoaded) {
-      return;
-    }
-
-    router.replace(userId ? "/dashboard" : "/login");
-  }, [isLoaded, router, userId]);
-
-  return null;
+  redirect(authState.userId ? "/dashboard" : "/login");
 }
