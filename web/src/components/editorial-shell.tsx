@@ -8,8 +8,7 @@ import { ParalumanLogo } from "@/components/brand/paraluman-logo";
 import { StatusBadge } from "@/components/articles/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import { useEditorialAuthState } from "@/components/auth/use-editorial-auth-state";
 
 const navItems: Array<{
   href: string;
@@ -32,9 +31,9 @@ export function EditorialShell({
   description: string;
   children: React.ReactNode;
 }) {
-  const viewer = useQuery(api.users.viewer, {});
+  const { viewer, resolvedRole } = useEditorialAuthState();
   const pathname = usePathname();
-  const isEditor = viewer?.role === "editor";
+  const isEditor = resolvedRole === "editor";
 
   return (
     <main className="editorial-shell min-h-screen">

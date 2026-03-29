@@ -75,6 +75,19 @@ Optional local test overrides:
 - `pnpm build`
 - `pnpm test:e2e`
 
+### Production stability note
+
+The March 30, 2026 production regression fix keeps editorial screens stable
+during transient Clerk or Convex auth refreshes:
+
+- editor-only routes resolve access from the lightweight `viewerRole` query
+  instead of blocking on the full `viewer` document
+- the writer article form and editor review workspace retain the last loaded
+  article bundle while authenticated queries reconnect
+
+This behavior was verified live against `https://paraluman.rvco.dev` after the
+frontend deploy for that fix.
+
 ## Deployment
 
 - Hosting target: Vercel project `paraluman-web`

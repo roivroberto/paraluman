@@ -3,7 +3,6 @@
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { useAuth } from "@clerk/nextjs";
 import { startTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -14,7 +13,7 @@ import {
   RefreshCcw,
   SendHorizontal,
 } from "lucide-react";
-import { ProfileSyncCard } from "@/components/auth/profile-sync-card";
+import { useEditorialAuthState } from "@/components/auth/use-editorial-auth-state";
 import { EditorialShell } from "@/components/editorial-shell";
 import { StatusBadge } from "@/components/articles/status-badge";
 import { shouldUsePublicMockTranslation } from "@/lib/env";
@@ -35,11 +34,16 @@ type QaWarning = {
 export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
   const router = useRouter();
   const shouldMockTranslation = shouldUsePublicMockTranslation();
-  const { isLoaded, isSignedIn } = useAuth();
-  const viewer = useQuery(api.users.viewer, {});
+  const {
+    isLoaded,
+    isSignedIn,
+    isConvexAuthLoading,
+    canQueryAuthenticatedConvex,
+    resolvedRole,
+  } = useEditorialAuthState();
   const bundle = useQuery(
     api.articles.getReviewBundle,
-    isLoaded && isSignedIn && viewer?.role === "editor"
+    canQueryAuthenticatedConvex && resolvedRole === "editor"
       ? { articleId }
       : "skip",
   );
@@ -52,16 +56,25 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
   const [translatedBody, setTranslatedBody] = useState("");
   const [rejectNote, setRejectNote] = useState("");
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [lastBundle, setLastBundle] = useState<typeof bundle>(undefined);
 
   useEffect(() => {
-    if (!bundle?.localization) {
+    if (bundle !== undefined) {
+      setLastBundle(bundle);
+    }
+  }, [bundle]);
+
+  const displayedBundle = bundle ?? lastBundle;
+
+  useEffect(() => {
+    if (!displayedBundle?.localization) {
       return;
     }
 
-    setTranslatedHeadline(bundle.localization.translatedHeadline);
-    setTranslatedDeck(bundle.localization.translatedDeck);
-    setTranslatedBody(bundle.localization.translatedBody);
-  }, [bundle]);
+    setTranslatedHeadline(displayedBundle.localization.translatedHeadline);
+    setTranslatedDeck(displayedBundle.localization.translatedDeck);
+    setTranslatedBody(displayedBundle.localization.translatedBody);
+  }, [displayedBundle]);
 
   async function handleSaveEdits() {
     try {
@@ -127,21 +140,13 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
     }
   }
 
-  if (isLoaded && isSignedIn && viewer === null) {
-    return (
-      <EditorialShell
-        description="Finalizing your Convex profile before opening review."
-        title="Translation review"
-      >
-        <ProfileSyncCard
-          description="Your Clerk account is signed in. We&apos;re finishing the Convex user record before opening review."
-          title="Syncing your newsroom profile"
-        />
-      </EditorialShell>
-    );
-  }
-
-  if (isLoaded && isSignedIn && viewer && viewer.role !== "editor") {
+  if (
+    isLoaded &&
+    isSignedIn &&
+    !isConvexAuthLoading &&
+    resolvedRole &&
+    resolvedRole !== "editor"
+  ) {
     return (
       <EditorialShell
         description="This review screen is restricted to editors."
@@ -158,7 +163,13 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
     );
   }
 
-  if (bundle === undefined) {
+  if (
+    displayedBundle === undefined &&
+    (!isLoaded ||
+      isConvexAuthLoading ||
+      (isSignedIn && resolvedRole === undefined) ||
+      bundle === undefined)
+  ) {
     return (
       <EditorialShell
         description="Loading the side-by-side review workspace."
@@ -173,7 +184,7 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
     );
   }
 
-  if (bundle === null || !bundle.localization) {
+  if (!displayedBundle?.localization) {
     return (
       <EditorialShell
         description="This review screen is only available for editor-approved review access."
@@ -190,8 +201,10 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
     );
   }
 
-  const warnings = bundle.localization.qaWarnings;
-  const isTranslating = bundle.article.status === "TRANSLATING";
+  const activeBundle = displayedBundle;
+  const localization = activeBundle.localization!;
+  const warnings = localization.qaWarnings;
+  const isTranslating = activeBundle.article.status === "TRANSLATING";
   const disableReviewActions = busyAction !== null || isTranslating;
 
   return (
@@ -207,15 +220,19 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
                 <CardTitle className="font-heading text-3xl">English source</CardTitle>
                 <CardDescription>Read-only source of truth</CardDescription>
               </div>
-              <StatusBadge status={bundle.article.status} />
+              <StatusBadge status={activeBundle.article.status} />
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <h2 className="font-heading text-4xl leading-tight">{bundle.article.headline}</h2>
-            <p className="text-lg text-muted-foreground">{bundle.article.deck}</p>
+            <h2 className="font-heading text-4xl leading-tight">
+              {activeBundle.article.headline}
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              {activeBundle.article.deck}
+            </p>
             <ScrollArea className="h-[34rem] rounded-[1.5rem] border bg-muted/30 p-5">
               <div className="whitespace-pre-wrap text-sm leading-7 text-foreground">
-                {bundle.article.body}
+                {activeBundle.article.body}
               </div>
             </ScrollArea>
           </CardContent>
@@ -264,11 +281,13 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
         </Card>
 
         <div className="flex flex-col gap-6">
-          {bundle.article.translationError ? (
+          {activeBundle.article.translationError ? (
             <Alert className="border-destructive/20 bg-destructive/5">
               <AlertTriangle data-icon="inline-start" />
               <AlertTitle>Latest translation attempt failed</AlertTitle>
-              <AlertDescription>{bundle.article.translationError}</AlertDescription>
+              <AlertDescription>
+                {activeBundle.article.translationError}
+              </AlertDescription>
             </Alert>
           ) : null}
 

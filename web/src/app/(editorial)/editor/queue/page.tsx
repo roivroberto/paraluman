@@ -1,32 +1,21 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useAuth } from "@clerk/nextjs";
-import { api } from "@convex/_generated/api";
-import { ProfileSyncCard } from "@/components/auth/profile-sync-card";
+import { useEditorialAuthState } from "@/components/auth/use-editorial-auth-state";
 import { EditorialShell } from "@/components/editorial-shell";
 import { EditorQueueClient } from "@/components/editor/editor-queue-client";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function EditorQueuePage() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const viewer = useQuery(api.users.viewer, {});
+  const { isLoaded, isSignedIn, isConvexAuthLoading, resolvedRole } =
+    useEditorialAuthState();
 
-  if (isLoaded && isSignedIn && viewer === null) {
-    return (
-      <EditorialShell
-        description="Finalizing your newsroom profile before opening the editor queue."
-        title="Editor review queue"
-      >
-        <ProfileSyncCard
-          description="Your Clerk account is signed in. We&apos;re finishing the Convex user record before opening the review queue."
-          title="Syncing your newsroom profile"
-        />
-      </EditorialShell>
-    );
-  }
-
-  if (isLoaded && isSignedIn && viewer && viewer.role !== "editor") {
+  if (
+    isLoaded &&
+    isSignedIn &&
+    !isConvexAuthLoading &&
+    resolvedRole &&
+    resolvedRole !== "editor"
+  ) {
     return (
       <EditorialShell
         description="This screen is restricted to editors."

@@ -1,36 +1,32 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { useAuth } from "@clerk/nextjs";
 import { api } from "@convex/_generated/api";
-import { ProfileSyncCard } from "@/components/auth/profile-sync-card";
+import { useQuery } from "convex/react";
+import { useEditorialAuthState } from "@/components/auth/use-editorial-auth-state";
 import { EditorialShell } from "@/components/editorial-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function GlossaryPage() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const viewer = useQuery(api.users.viewer, {});
+  const { isLoaded, isSignedIn, isConvexAuthLoading, resolvedRole } =
+    useEditorialAuthState();
   const glossary = useQuery(
     api.glossary.list,
-    isLoaded && isSignedIn && viewer?.role === "editor" ? {} : "skip",
+    isLoaded &&
+      isSignedIn &&
+      !isConvexAuthLoading &&
+      resolvedRole === "editor"
+      ? {}
+      : "skip",
   );
 
-  if (isLoaded && isSignedIn && viewer === null) {
-    return (
-      <EditorialShell
-        description="Finalizing your Convex profile before loading the glossary."
-        title="Editorial glossary"
-      >
-        <ProfileSyncCard
-          description="Your Clerk account is signed in. We&apos;re finishing the Convex user record before opening the glossary."
-          title="Syncing your newsroom profile"
-        />
-      </EditorialShell>
-    );
-  }
-
-  if (isLoaded && isSignedIn && viewer && viewer.role !== "editor") {
+  if (
+    isLoaded &&
+    isSignedIn &&
+    !isConvexAuthLoading &&
+    resolvedRole &&
+    resolvedRole !== "editor"
+  ) {
     return (
       <EditorialShell
         description="This screen is restricted to editors."

@@ -74,25 +74,34 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
   const [isSaving, setIsSaving] = useState(false);
   const [manualSlug, setManualSlug] = useState(false);
   const deferredHeadline = useDeferredValue(form.headline);
+  const [lastBundle, setLastBundle] = useState<typeof bundle>(undefined);
 
   useEffect(() => {
-    if (!bundle?.article) {
+    if (bundle !== undefined) {
+      setLastBundle(bundle);
+    }
+  }, [bundle]);
+
+  const displayedBundle = bundle ?? lastBundle;
+
+  useEffect(() => {
+    if (!displayedBundle?.article) {
       return;
     }
 
     setForm({
-      headline: bundle.article.headline,
-      deck: bundle.article.deck,
-      slug: bundle.article.slug,
-      byline: bundle.article.byline,
-      category: bundle.article.category,
-      heroImageUrl: bundle.article.heroImageUrl,
-      heroImageCaption: bundle.article.heroImageCaption,
-      heroImageAlt: bundle.article.heroImageAlt,
-      body: bundle.article.body,
+      headline: displayedBundle.article.headline,
+      deck: displayedBundle.article.deck,
+      slug: displayedBundle.article.slug,
+      byline: displayedBundle.article.byline,
+      category: displayedBundle.article.category,
+      heroImageUrl: displayedBundle.article.heroImageUrl,
+      heroImageCaption: displayedBundle.article.heroImageCaption,
+      heroImageAlt: displayedBundle.article.heroImageAlt,
+      body: displayedBundle.article.body,
     });
     setManualSlug(true);
-  }, [bundle]);
+  }, [displayedBundle]);
 
   useEffect(() => {
     if (manualSlug) {
@@ -105,7 +114,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
     }));
   }, [deferredHeadline, manualSlug]);
 
-  const currentStatus = bundle?.article?.status ?? "DRAFT";
+  const currentStatus = displayedBundle?.article?.status ?? "DRAFT";
   const isReadOnly = Boolean(articleId && currentStatus !== "DRAFT");
   const isCreateModeReady = articleId !== undefined || isSignedInToConvex;
   const disableFieldControls = isSaving || isReadOnly;
@@ -146,7 +155,11 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
     }
   }
 
-  if (articleId && (!isLoaded || isConvexAuthLoading || bundle === undefined)) {
+  if (
+    articleId &&
+    displayedBundle === undefined &&
+    (!isLoaded || isConvexAuthLoading || bundle === undefined)
+  ) {
     return (
       <Card>
         <CardContent className="flex min-h-72 items-center justify-center">
@@ -156,7 +169,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
     );
   }
 
-  if (articleId && bundle === null) {
+  if (articleId && displayedBundle === null) {
     return (
       <Alert>
         <AlertCircle data-icon="inline-start" />
@@ -365,19 +378,23 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
           )
         ) : null}
 
-        {bundle?.article?.translationError ? (
+        {displayedBundle?.article?.translationError ? (
           <Alert className="border-destructive/20 bg-destructive/5">
             <AlertCircle data-icon="inline-start" />
             <AlertTitle>Translation failed</AlertTitle>
-            <AlertDescription>{bundle.article.translationError}</AlertDescription>
+            <AlertDescription>
+              {displayedBundle.article.translationError}
+            </AlertDescription>
           </Alert>
         ) : null}
 
-        {bundle?.article?.latestEditorNote ? (
+        {displayedBundle?.article?.latestEditorNote ? (
           <Alert className="border-primary/20 bg-primary/5">
             <AlertCircle data-icon="inline-start" />
             <AlertTitle>Latest editor note</AlertTitle>
-            <AlertDescription>{bundle.article.latestEditorNote}</AlertDescription>
+            <AlertDescription>
+              {displayedBundle.article.latestEditorNote}
+            </AlertDescription>
           </Alert>
         ) : null}
 
@@ -403,7 +420,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             >
               <p className="font-medium text-foreground">Current Filipino readiness</p>
               <p className="mt-2 text-sm">
-                {bundle?.localization
+                {displayedBundle?.localization
                   ? "A Filipino draft exists and can now move through review."
                   : "No Filipino draft exists yet for this article."}
               </p>
@@ -411,10 +428,10 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
           </CardContent>
         </Card>
 
-        {articleId && bundle ? (
+        {articleId && displayedBundle ? (
           <WorkflowHistory
-            auditLogs={bundle.auditLogs}
-            publication={bundle.publication}
+            auditLogs={displayedBundle.auditLogs}
+            publication={displayedBundle.publication}
           />
         ) : null}
       </div>
