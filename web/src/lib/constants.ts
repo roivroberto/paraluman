@@ -20,8 +20,6 @@ export const LOCALES = ["en", "fil"] as const;
 export const FILIPINO_DISCLOSURE =
   "Ang artikulong ito ay may AI-assisted na unang salin at sinuri ng editor bago inilathala.";
 
-export const PLACEHOLDER_CONVEX_URL = "https://placeholder.convex.cloud";
-
 export const DEMO_GLOSSARY_SEED = [
   {
     englishTerm: "Commission on Elections",

@@ -103,6 +103,94 @@ export async function requireRole(
   return viewer;
 }
 
+export async function ensureViewer(ctx: MutationCtx) {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity?.subject || !identity.email) {
+    throw new ConvexError("Missing Clerk identity details.");
+  }
+
+  const email = normalizeEmail(identity.email);
+  const displayName =
+    identity.name ?? identity.nickname ?? email.split("@")[0] ?? "Paraluman";
+  const now = Date.now();
+  const existing =
+    (await getUserByClerkId(ctx, identity.subject)) ??
+    (await getUserByEmail(ctx, email));
+  const role =
+    existing?.role ?? assertProvisionedRole(resolveRoleForEmail(email), email);
+
+  if (existing) {
+    await ctx.db.patch(existing._id, {
+      clerkId: identity.subject,
+      email,
+      displayName,
+      updatedAt: now,
+    });
+
+    return {
+      ...existing,
+      clerkId: identity.subject,
+      email,
+      displayName,
+      role,
+      updatedAt: now,
+    };
+  }
+
+  const viewerId = await ctx.db.insert("users", {
+    clerkId: identity.subject,
+    email,
+    displayName,
+    role,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const viewer = await ctx.db.get(viewerId);
+
+  if (!viewer) {
+    throw new ConvexError("Could not create the current user profile.");
+  }
+
+  return viewer;
+}
+
+export async function ensureRole(
+  ctx: MutationCtx,
+  role: "writer" | "editor",
+) {
+  const viewer = await ensureViewer(ctx);
+
+  if (viewer.role !== role) {
+    throw new ConvexError(`This action requires ${role} access.`);
+  }
+
+  return viewer;
+}
+
+export async function requireProvisionedRole(
+  ctx: QueryCtx | MutationCtx,
+  role: "writer" | "editor",
+) {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity?.subject || !identity.email) {
+    throw new ConvexError("Authentication required.");
+  }
+
+  const resolvedRole = assertProvisionedRole(
+    resolveRoleForEmail(identity.email),
+    identity.email,
+  );
+
+  if (resolvedRole !== role) {
+    throw new ConvexError(`This action requires ${role} access.`);
+  }
+
+  return resolvedRole;
+}
+
 export function assertArticleEditable(
   article: Doc<"articles">,
   viewer: Doc<"users">,

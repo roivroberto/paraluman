@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
-import { v, ConvexError } from "convex/values";
+import { v } from "convex/values";
 import {
-  assertProvisionedRole,
+  ensureViewer,
   getUserByClerkId,
   getUserByEmail,
   normalizeEmail,
@@ -22,45 +22,26 @@ export const viewer = query({
   },
 });
 
-export const ensureCurrentUser = mutation({
+export const viewerRole = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
 
     if (!identity?.subject || !identity.email) {
-      throw new ConvexError("Missing Clerk identity details.");
+      return null;
     }
 
-    const email = normalizeEmail(identity.email);
-    const displayName =
-      identity.name ?? identity.nickname ?? email.split("@")[0] ?? "Paraluman";
-    const now = Date.now();
     const existing =
       (await getUserByClerkId(ctx, identity.subject)) ??
-      (await getUserByEmail(ctx, email));
-    const role =
-      existing?.role ??
-      assertProvisionedRole(resolveRoleForEmail(email), email);
+      (await getUserByEmail(ctx, identity.email));
 
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        clerkId: identity.subject,
-        email,
-        displayName,
-        updatedAt: now,
-      });
-      return existing._id;
-    }
-
-    return await ctx.db.insert("users", {
-      clerkId: identity.subject,
-      email,
-      displayName,
-      role,
-      createdAt: now,
-      updatedAt: now,
-    });
+    return existing?.role ?? resolveRoleForEmail(identity.email);
   },
+});
+
+export const ensureCurrentUser = mutation({
+  args: {},
+  handler: async (ctx) => (await ensureViewer(ctx))._id,
 });
 
 export const upsertFromWebhook = mutation({

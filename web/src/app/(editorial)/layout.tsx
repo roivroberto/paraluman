@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { bodyFont, headingFont } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { getMetadataBase } from "@/lib/site";
+import { validatePublicRuntimeEnv } from "@/lib/env";
 import { AppProviders } from "@/components/providers/app-providers";
 import "../globals.css";
+
+validatePublicRuntimeEnv();
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),

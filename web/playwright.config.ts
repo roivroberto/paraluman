@@ -13,7 +13,7 @@ export default defineConfig({
   retries: 0,
   webServer: {
     command:
-      'PARALUMAN_E2E_MOCK_TRANSLATION=1 pnpm convex:dev --local --typecheck disable --tail-logs disable --run-sh "pnpm exec next dev --hostname localhost --port 3000"',
+      'NEXT_PUBLIC_PARALUMAN_E2E_MOCK_TRANSLATION=1 PARALUMAN_E2E_MOCK_TRANSLATION=1 pnpm convex:dev --typecheck disable --tail-logs disable --run-sh "NEXT_PUBLIC_PARALUMAN_E2E_MOCK_TRANSLATION=1 pnpm exec next dev --hostname localhost --port 3000"',
     port: 3000,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

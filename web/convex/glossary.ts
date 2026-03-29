@@ -1,6 +1,6 @@
 import { internalQuery, mutation, query } from "./_generated/server";
 import { demoGlossarySeed } from "./constants";
-import { requireRole, requireViewer } from "./lib";
+import { ensureViewer, requireRole } from "./lib";
 
 export const list = query({
   args: {},
@@ -20,7 +20,7 @@ export const list = query({
 export const seedIfEmpty = mutation({
   args: {},
   handler: async (ctx) => {
-    const viewer = await requireViewer(ctx);
+    const viewer = await ensureViewer(ctx);
     const existing = await ctx.db.query("glossary_terms").take(1);
 
     if (existing.length > 0) {

@@ -4,7 +4,10 @@ import { bodyFont, headingFont } from "@/lib/fonts";
 import { LOCALES, type AppLocale } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { getMetadataBase } from "@/lib/site";
+import { validatePublicRuntimeEnv } from "@/lib/env";
 import "../../globals.css";
+
+validatePublicRuntimeEnv();
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),

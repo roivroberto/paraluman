@@ -1,6 +1,6 @@
-import { SignIn } from "@clerk/nextjs";
 import { ParalumanLogo } from "@/components/brand/paraluman-logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LoginSignIn } from "@/components/auth/login-sign-in";
 
 export default async function LoginPage({
   searchParams,
@@ -42,12 +42,7 @@ export default async function LoginPage({
                 </AlertDescription>
               </Alert>
             ) : null}
-            <SignIn
-              forceRedirectUrl="/dashboard"
-              path="/login"
-              routing="path"
-              signUpUrl=""
-            />
+            <LoginSignIn />
           </div>
         </section>
       </div>

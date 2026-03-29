@@ -6,12 +6,10 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { useEffect, useRef } from "react";
 import { useMutation } from "convex/react";
 import { Toaster } from "sonner";
-import { PLACEHOLDER_CONVEX_URL } from "@/lib/constants";
+import { getRequiredPublicConvexUrl } from "@/lib/env";
 import { api } from "@convex/_generated/api";
 
-const convex = new ConvexReactClient(
-  process.env.NEXT_PUBLIC_CONVEX_URL ?? PLACEHOLDER_CONVEX_URL,
-);
+const convex = new ConvexReactClient(getRequiredPublicConvexUrl());
 
 function CurrentUserSync() {
   const ensureCurrentUser = useMutation(api.users.ensureCurrentUser);

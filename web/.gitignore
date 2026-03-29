@@ -33,6 +33,8 @@ yarn-error.log*
 # local tooling
 .agents/
 .claude/
+AGENTS.md
+CLAUDE.md
 skills-lock.json
 test-results/
 playwright-report/
@@ -40,6 +42,7 @@ e2e/.auth/
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

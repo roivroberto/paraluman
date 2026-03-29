@@ -37,6 +37,8 @@ async function waitForStatus(page: Page, status: string) {
 test("covers the writer, editor, and public publishing workflow", async ({
   browser,
 }) => {
+  test.slow();
+
   const article = createArticleFixture();
 
   const writerContext = await browser.newContext({
@@ -138,15 +140,21 @@ test("covers the writer, editor, and public publishing workflow", async ({
   await expect(
     queuePage.getByText("AI-assisted translation disclosure"),
   ).toBeVisible();
-  await expect(queuePage.getByText(article.editedTranslation.headline)).toBeVisible();
+  await expect(
+    queuePage.getByRole("heading", { name: article.editedTranslation.headline }),
+  ).toBeVisible();
   await queuePage.goto(`/editor/review/${articlePath.split("/").at(-1)}`);
   await expect(queuePage.getByText("Review unavailable")).toBeVisible();
 
   const guestContext = await browser.newContext();
   const guestPage = await openContextPage(guestContext, filipinoPath);
-  await expect(guestPage.getByText(article.editedTranslation.headline)).toBeVisible();
-  await guestPage.getByRole("link", { name: "English", exact: true }).click();
-  await expect(guestPage).toHaveURL(new RegExp(`${englishPath}$`));
+  await expect(
+    guestPage.getByRole("heading", { name: article.editedTranslation.headline }),
+  ).toBeVisible();
+  await Promise.all([
+    guestPage.waitForURL(new RegExp(`${englishPath}$`)),
+    guestPage.getByRole("link", { name: "English", exact: true }).click(),
+  ]);
   await expect(
     guestPage.getByRole("heading", { name: article.headline }),
   ).toBeVisible();

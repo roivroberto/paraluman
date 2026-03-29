@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "convex:dev": "convex dev",
+    "convex:sync-env": "node ./scripts/sync-convex-env.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --no-warn-ignored src convex e2e *.ts *.mjs",

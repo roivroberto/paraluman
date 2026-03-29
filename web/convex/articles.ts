@@ -13,9 +13,11 @@ import {
   assertLocalizationReady,
   assertTranslationReady,
   buildQaWarnings,
+  ensureRole,
+  ensureViewer,
   ensureUniqueSlug,
   insertAuditLog,
-  requireRole,
+  requireProvisionedRole,
   requireViewer,
 } from "./lib";
 
@@ -130,7 +132,10 @@ export const getReviewBundle = query({
     articleId: v.id("articles"),
   },
   handler: async (ctx, args) => {
-    const viewer = await requireRole(ctx, "editor");
+    await requireProvisionedRole(ctx, "editor");
+    const viewer = {
+      role: "editor",
+    } as Doc<"users">;
     const bundle = await buildArticleBundle(ctx, args.articleId, viewer, true);
 
     if (
@@ -148,7 +153,7 @@ export const getReviewBundle = query({
 export const getEditorQueue = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "editor");
+    await requireProvisionedRole(ctx, "editor");
     const articles = await ctx.db
       .query("articles")
       .withIndex("by_status", (query) => query.eq("status", "NEEDS_REVIEW"))
@@ -181,7 +186,7 @@ export const getEditorQueue = query({
 export const createArticle = mutation({
   args: articleFields,
   handler: async (ctx, args) => {
-    const viewer = await requireViewer(ctx);
+    const viewer = await ensureViewer(ctx);
     const now = Date.now();
     const slug = await ensureUniqueSlug(ctx, args.slug);
     const articleId = await ctx.db.insert("articles", {
@@ -215,7 +220,7 @@ export const updateArticle = mutation({
     ...articleFields,
   },
   handler: async (ctx, args) => {
-    const viewer = await requireViewer(ctx);
+    const viewer = await ensureViewer(ctx);
     const article = await ctx.db.get(args.articleId);
 
     if (!article) {
@@ -249,9 +254,10 @@ export const updateArticle = mutation({
 export const submitForTranslation = mutation({
   args: {
     articleId: v.id("articles"),
+    mockTranslation: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const viewer = await requireViewer(ctx);
+    const viewer = await ensureViewer(ctx);
     const article = await ctx.db.get(args.articleId);
 
     if (!article) {
@@ -279,6 +285,7 @@ export const submitForTranslation = mutation({
     await ctx.scheduler.runAfter(0, internal.translation.generateTranslation, {
       articleId: article._id,
       mode: "initial",
+      mockTranslation: args.mockTranslation ?? false,
       requestedBy: viewer._id,
     });
 
@@ -289,9 +296,10 @@ export const submitForTranslation = mutation({
 export const requestRetranslation = mutation({
   args: {
     articleId: v.id("articles"),
+    mockTranslation: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const viewer = await requireRole(ctx, "editor");
+    const viewer = await ensureRole(ctx, "editor");
     const article = await ctx.db.get(args.articleId);
 
     if (!article) {
@@ -320,6 +328,7 @@ export const requestRetranslation = mutation({
     await ctx.scheduler.runAfter(0, internal.translation.generateTranslation, {
       articleId: article._id,
       mode: "retranslate",
+      mockTranslation: args.mockTranslation ?? false,
       requestedBy: viewer._id,
     });
 
@@ -335,7 +344,7 @@ export const saveLocalizationEdits = mutation({
     translatedBody: v.string(),
   },
   handler: async (ctx, args) => {
-    const viewer = await requireRole(ctx, "editor");
+    const viewer = await ensureRole(ctx, "editor");
     const article = await ctx.db.get(args.articleId);
 
     if (!article) {
@@ -406,7 +415,7 @@ export const rejectArticle = mutation({
     note: v.string(),
   },
   handler: async (ctx, args) => {
-    const viewer = await requireRole(ctx, "editor");
+    const viewer = await ensureRole(ctx, "editor");
     const article = await ctx.db.get(args.articleId);
 
     if (!article) {
@@ -447,7 +456,7 @@ export const approveAndPublish = mutation({
     articleId: v.id("articles"),
   },
   handler: async (ctx, args) => {
-    const viewer = await requireRole(ctx, "editor");
+    const viewer = await ensureRole(ctx, "editor");
     const article = await ctx.db.get(args.articleId);
 
     if (!article) {

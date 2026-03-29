@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { EditorialShell } from "@/components/editorial-shell";
 import { StatusBadge } from "@/components/articles/status-badge";
+import { shouldUsePublicMockTranslation } from "@/lib/env";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ type QaWarning = {
 
 export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
   const router = useRouter();
+  const shouldMockTranslation = shouldUsePublicMockTranslation();
   const { isLoaded, isSignedIn } = useAuth();
   const viewer = useQuery(api.users.viewer, {});
   const bundle = useQuery(
@@ -80,7 +82,10 @@ export function ReviewClient({ articleId }: { articleId: Id<"articles"> }) {
   async function handleRetranslate() {
     try {
       setBusyAction("retranslate");
-      await requestRetranslation({ articleId });
+      await requestRetranslation({
+        articleId,
+        mockTranslation: shouldMockTranslation,
+      });
       toast.success("Re-translation requested. Refreshing the Filipino draft.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not re-translate.");

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { AlertCircle, LoaderCircle, Sparkles } from "lucide-react";
 import { ARTICLE_CATEGORIES } from "@/lib/constants";
+import { shouldUsePublicMockTranslation } from "@/lib/env";
 import { slugifyHeadline } from "@/lib/slug";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,14 +54,15 @@ const emptyState: FormState = {
 
 export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
   const router = useRouter();
+  const shouldMockTranslation = shouldUsePublicMockTranslation();
   const { isLoaded, isSignedIn } = useAuth();
   const { isLoading: isConvexAuthLoading, isAuthenticated: isConvexAuthenticated } =
     useConvexAuth();
+  const isSignedInToConvex =
+    isLoaded && isSignedIn && !isConvexAuthLoading && isConvexAuthenticated;
   const bundle = useQuery(
     api.articles.getArticleBundle,
-    articleId && isLoaded && isSignedIn && !isConvexAuthLoading && isConvexAuthenticated
-      ? { articleId }
-      : "skip",
+    articleId && isSignedInToConvex ? { articleId } : "skip",
   );
   const createArticle = useMutation(api.articles.createArticle);
   const updateArticle = useMutation(api.articles.updateArticle);
@@ -102,7 +104,9 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
 
   const currentStatus = bundle?.article?.status ?? "DRAFT";
   const isReadOnly = Boolean(articleId && currentStatus !== "DRAFT");
-  const disableFormControls = isSaving || isReadOnly;
+  const isCreateModeReady = articleId !== undefined || isSignedInToConvex;
+  const disableFieldControls = isSaving || isReadOnly;
+  const disableActionControls = disableFieldControls || !isCreateModeReady;
 
   async function persistArticle(mode: "draft" | "translate") {
     try {
@@ -116,7 +120,10 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
         : await createArticle(form);
 
       if (mode === "translate") {
-        await submitForTranslation({ articleId: targetArticleId });
+        await submitForTranslation({
+          articleId: targetArticleId,
+          mockTranslation: shouldMockTranslation,
+        });
         toast.success("Translation requested. The Filipino draft is now generating.");
       } else {
         toast.success(articleId ? "Draft updated." : "Draft created.");
@@ -178,7 +185,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <label className="flex flex-col gap-2">
               <span className="text-sm font-medium">Headline</span>
               <Input
-                disabled={disableFormControls}
+                disabled={disableFieldControls}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, headline: event.target.value }))
                 }
@@ -189,7 +196,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <label className="flex flex-col gap-2">
               <span className="text-sm font-medium">Slug</span>
               <Input
-                disabled={disableFormControls}
+                disabled={disableFieldControls}
                 onChange={(event) => {
                   setManualSlug(true);
                   setForm((current) => ({ ...current, slug: slugifyHeadline(event.target.value) }));
@@ -204,7 +211,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <span className="text-sm font-medium">Deck</span>
             <Textarea
               className="min-h-24"
-              disabled={disableFormControls}
+              disabled={disableFieldControls}
               onChange={(event) =>
                 setForm((current) => ({ ...current, deck: event.target.value }))
               }
@@ -217,7 +224,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <label className="flex flex-col gap-2">
               <span className="text-sm font-medium">Byline</span>
               <Input
-                disabled={disableFormControls}
+                disabled={disableFieldControls}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, byline: event.target.value }))
                 }
@@ -228,7 +235,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">Category</span>
               <Select
-                disabled={disableFormControls}
+                disabled={disableFieldControls}
                 onValueChange={(value) =>
                   setForm((current) => ({
                     ...current,
@@ -257,7 +264,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <label className="flex flex-col gap-2 md:col-span-2">
               <span className="text-sm font-medium">Hero image URL</span>
               <Input
-                disabled={disableFormControls}
+                disabled={disableFieldControls}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, heroImageUrl: event.target.value }))
                 }
@@ -269,7 +276,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
               <span className="text-sm font-medium">Hero caption</span>
               <Textarea
                 className="min-h-24"
-                disabled={disableFormControls}
+                disabled={disableFieldControls}
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
@@ -283,7 +290,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
               <span className="text-sm font-medium">Hero alt text</span>
               <Textarea
                 className="min-h-24"
-                disabled={disableFormControls}
+                disabled={disableFieldControls}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, heroImageAlt: event.target.value }))
                 }
@@ -296,7 +303,7 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <span className="text-sm font-medium">Body</span>
             <Textarea
               className="min-h-[24rem] text-sm leading-7"
-              disabled={disableFormControls}
+              disabled={disableFieldControls}
               onChange={(event) =>
                 setForm((current) => ({ ...current, body: event.target.value }))
               }
@@ -306,13 +313,13 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
           </label>
 
           <div className="flex flex-wrap gap-3">
-            <Button disabled={disableFormControls} onClick={() => persistArticle("draft")}>
+            <Button disabled={disableActionControls} onClick={() => persistArticle("draft")}>
               {isSaving ? <LoaderCircle className="animate-spin" data-icon="inline-start" /> : null}
               Save Draft
             </Button>
             <Button
               className="shadow-[0_16px_40px_rgba(115,6,142,0.18)]"
-              disabled={disableFormControls}
+              disabled={disableActionControls}
               onClick={() => persistArticle("translate")}
               variant="secondary"
             >
@@ -331,6 +338,17 @@ export function ArticleForm({ articleId }: { articleId?: Id<"articles"> }) {
             <AlertDescription>
               This article is currently in <strong>{currentStatus}</strong>. English source
               edits are only allowed while the article is in draft.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {!articleId && !isCreateModeReady ? (
+          <Alert>
+            <AlertCircle data-icon="inline-start" />
+            <AlertTitle>Syncing your newsroom profile</AlertTitle>
+            <AlertDescription>
+              You can finish drafting now. Saving unlocks as soon as the Convex
+              session finishes provisioning your account.
             </AlertDescription>
           </Alert>
         ) : null}

@@ -7,7 +7,83 @@ import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { buildQaWarnings } from "./lib";
 
-const translationClient = new TranslationServiceClient();
+let translationClient: TranslationServiceClient | null = null;
+
+type GoogleServiceAccountCredentials = {
+  client_email: string;
+  private_key: string;
+  project_id?: string;
+};
+
+function isGoogleServiceAccountCredentials(
+  value: unknown,
+): value is GoogleServiceAccountCredentials {
+  const candidate =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : null;
+
+  return Boolean(
+    candidate &&
+      typeof candidate.client_email === "string" &&
+      typeof candidate.private_key === "string",
+  );
+}
+
+function getServiceAccountCredentials() {
+  const rawCredentials =
+    process.env.GOOGLE_SERVICE_ACCOUNT_JSON ??
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+
+  if (!rawCredentials) {
+    return null;
+  }
+
+  let parsedCredentials: unknown;
+
+  try {
+    parsedCredentials = JSON.parse(rawCredentials);
+  } catch {
+    throw new ConvexError(
+      "Google service account JSON is invalid. Check GOOGLE_SERVICE_ACCOUNT_JSON.",
+    );
+  }
+
+  if (!isGoogleServiceAccountCredentials(parsedCredentials)) {
+    throw new ConvexError(
+      "Google service account JSON must include client_email and private_key.",
+    );
+  }
+
+  return {
+    clientEmail: parsedCredentials.client_email,
+    privateKey: parsedCredentials.private_key,
+    projectId:
+      typeof parsedCredentials.project_id === "string"
+        ? parsedCredentials.project_id
+        : undefined,
+  };
+}
+
+function getTranslationClient() {
+  if (translationClient) {
+    return translationClient;
+  }
+
+  const credentials = getServiceAccountCredentials();
+
+  translationClient = credentials
+    ? new TranslationServiceClient({
+        credentials: {
+          client_email: credentials.clientEmail,
+          private_key: credentials.privateKey,
+        },
+        projectId: credentials.projectId,
+      })
+    : new TranslationServiceClient();
+
+  return translationClient;
+}
 
 type TranslationPayload = {
   translatedHeadline: string;
@@ -32,11 +108,12 @@ function buildMockTranslation(args: {
         currentValue.replaceAll(term.englishTerm, term.filipinoTerm),
       value,
     );
+  const formatMockValue = (value: string) => applyGlossary(value).replaceAll(" ", " / ");
 
   return {
-    translatedHeadline: `${prefix}: ${applyGlossary(args.headline)}`,
-    translatedDeck: `${prefix}: ${applyGlossary(args.deck)}`,
-    translatedBody: `${prefix}: ${applyGlossary(args.body)}`,
+    translatedHeadline: `${prefix}: ${formatMockValue(args.headline)}`,
+    translatedDeck: `${prefix}: ${formatMockValue(args.deck)}`,
+    translatedBody: `${prefix}: ${formatMockValue(args.body)}`,
     glossaryApplied: orderedGlossaryTerms.length > 0,
   } satisfies TranslationPayload;
 }
@@ -66,8 +143,12 @@ async function translateArticle(args: {
   deck: string;
   body: string;
   glossaryTerms: Array<Doc<"glossary_terms">>;
+  mockTranslation?: boolean;
 }) {
-  if (process.env.PARALUMAN_E2E_MOCK_TRANSLATION === "1") {
+  if (
+    args.mockTranslation ||
+    process.env.PARALUMAN_E2E_MOCK_TRANSLATION === "1"
+  ) {
     return buildMockTranslation(args);
   }
 
@@ -90,7 +171,7 @@ async function translateArticle(args: {
     glossaryConfig: glossary ? { glossary } : undefined,
   };
 
-  const [response] = await translationClient.translateText(request as never);
+  const [response] = await getTranslationClient().translateText(request as never);
   const translations =
     response.glossaryTranslations?.length &&
     response.glossaryTranslations.length === 3
@@ -113,6 +194,7 @@ export const generateTranslation = internalAction({
   args: {
     articleId: v.id("articles"),
     mode: v.union(v.literal("initial"), v.literal("retranslate")),
+    mockTranslation: v.optional(v.boolean()),
     requestedBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
@@ -135,6 +217,7 @@ export const generateTranslation = internalAction({
         deck: article.deck,
         body: article.body,
         glossaryTerms,
+        mockTranslation: args.mockTranslation ?? false,
       });
 
       const qaWarnings = buildQaWarnings({
