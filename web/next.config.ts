@@ -12,11 +12,7 @@ const allowedImageHosts = parseAllowedImageHosts(
 );
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: [
-    "localhost",
-    "127.0.0.1",
-    "scarlett-subdentate-anachronously.ngrok-free.dev",
-  ],
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
   images: {
     remotePatterns: allowedImageHosts.flatMap((hostname) => [
       {

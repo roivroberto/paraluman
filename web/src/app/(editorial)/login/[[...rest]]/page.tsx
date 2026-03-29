@@ -26,8 +26,8 @@ export default async function LoginPage({
             </p>
           </div>
           <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-            <p>Demo roles are seeded from Convex and public sign-up is expected to remain disabled in Clerk.</p>
-            <p>Use the demo writer and editor accounts provisioned in Clerk before the live walkthrough.</p>
+            <p>Roles are assigned from Convex and public sign-up is expected to remain disabled in Clerk.</p>
+            <p>Sign in with a provisioned writer or editor account to access the editorial workspace.</p>
           </div>
         </section>
 
@@ -38,7 +38,7 @@ export default async function LoginPage({
                 <AlertTitle>Access not provisioned</AlertTitle>
                 <AlertDescription>
                   This Clerk account is not in the newsroom allowlist. Sign in with a
-                  provisioned demo account or ask an editor to add you first.
+                  provisioned account or ask an editor to add you first.
                 </AlertDescription>
               </Alert>
             ) : null}
