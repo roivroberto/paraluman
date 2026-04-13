@@ -1,4 +1,4 @@
-# Sabay Publish 🇵🇭🗞️
+# Sabay Publish 🗞️
 ### Simultaneous bilingual news publishing for modern Philippine journalism.
 
 [![Language](https://img.shields.io/github/languages/top/roivroberto/sabay-publish)](https://github.com/roivroberto/sabay-publish)
