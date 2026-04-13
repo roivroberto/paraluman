@@ -1,4 +1,4 @@
-# Sabay Publish
+# Sabay Publish 🇵🇭🗞️
 ### Simultaneous bilingual news publishing for modern Philippine journalism.
 
 [![Language](https://img.shields.io/github/languages/top/roivroberto/sabay-publish)](https://github.com/roivroberto/sabay-publish)
@@ -10,7 +10,7 @@
 
 ---
 
-## 📸 Demo
+## 🚀 Demo
 
 ![Demo](assets/demo.jpg)
 
@@ -24,7 +24,7 @@ Built as a full-stack solution, it tackles the challenge of reliable multi-langu
 
 ---
 
-## 🛠 Tech Stack
+## 🛠️ Tech Stack
 
 - **Framework:** [Next.js](https://nextjs.org/) (App Router)
 - **Language:** [TypeScript](https://www.typescriptlang.org/)
@@ -37,7 +37,7 @@ Built as a full-stack solution, it tackles the challenge of reliable multi-langu
 
 ---
 
-## ✨ Key Features
+## ✨ Features
 
 - ✍️ **Sabay Publish:** Draft an English article and get an instant, high-quality Filipino translation.
 - 🔍 **Editorial Review:** Dedicated workspace for editors to review, refine, and approve translations.
@@ -47,7 +47,7 @@ Built as a full-stack solution, it tackles the challenge of reliable multi-langu
 
 ---
 
-## 🚀 Getting Started
+## 🚦 Getting Started
 
 ### Prerequisites
 
@@ -82,6 +82,6 @@ Built as a full-stack solution, it tackles the challenge of reliable multi-langu
 
 ---
 
-## 📄 License
+## 📜 License
 
 This project is licensed under the MIT License.
