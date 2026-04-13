@@ -12,7 +12,7 @@
 
 ## 📸 Demo
 
-![Demo](assets/demo.png)
+![Demo](assets/demo.jpg)
 
 ---
 
